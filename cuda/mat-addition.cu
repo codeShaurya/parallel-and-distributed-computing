@@ -1,3 +1,4 @@
+
 #include <stdio.h>
 #include <cuda.h>
 #include <stdlib.h>
@@ -31,40 +32,73 @@ int main(int argc, char *argv[])
 
   char key;
 
-  int i, j; // loop counters
+  int i, j;
 
-  int Grid_Dim_x = 1, Grid_Dim_y = 1;   //Grid structure values
-  int Block_Dim_x = 1, Block_Dim_y = 1; //Block structure values
+  int Grid_Dim_x = 1, Grid_Dim_y = 1;
+  int Block_Dim_x = 1, Block_Dim_y = 1;
 
-  int noThreads_x, noThreads_y; // number of threads available in device, each dimension
-  int noThreads_block;          // number of threads in a block
+  int noThreads_x, noThreads_y;
+  int noThreads_block;
 
-  int N = 10; // size of array in each dimension
+  int N = 10;
   int *a, *b, *c, *d;
   int *dev_a, *dev_b, *dev_c;
-  int size; // number of bytes in arrays
+  int size;
 
-  cudaEvent_t start, stop; // using cuda events to measure time
-  float elapsed_time_ms;   // which is applicable for asynchronous code also
-
-  /* --------------------ENTER INPUT PARAMETERS AND DATA -----------------------*/
-
-  do
-  { // loop to repeat complete program
+  cudaEvent_t start, stop;
+  float elapsed_time_ms;
 
   __global__ void input_parameter(sizeof(x), sizeof(y), nub_block))
 
 
-		x = (int*) malloc(size);		//this time use dynamically allocated memory for arrays on host
+		x = (int*) malloc(size);
   y = (int *)malloc(size);
-  nub_block = (int *)malloc(size); // results from GPU
-                                   // results from CPU
+  nub_block = (int *)malloc(size);
 
-  for (i = 0; i < N; i++) // load arrays with some numbers
+
+  for (i = 0; i < N; i++)
     for (j = 0; j < N; j++)
     {
       a[i * N + j] = i;
       b[i * N + j] = i;
     }
-  }
+  cudaMalloc((void **)&dev_a, size);
+  cudaMalloc((void **)&dev_b, size);
+  cudaMalloc((void **)&dev_c, size);
+
+  cudaMemcpy(dev_a, a, size, cudaMemcpyHostToDevice);
+  cudaMemcpy(dev_b, b, size, cudaMemcpyHostToDevice);
+  cudaMemcpy(dev_c, c, size, cudaMemcpyHostToDevice);
+
+  cudaEventCreate(&start);
+  cudaEventCreate(&stop);
+
+  cudaEventRecord(start, 0);
+
+
+  gpu_matrixadd<<<Grid, Block>>>(dev_a, dev_b, dev_c, N);
+
+  cudaMemcpy(c, dev_c, size, cudaMemcpyDeviceToHost);
+
+  cudaEventRecord(stop, 0);
+  cudaEventSynchronize(stop);
+  cudaEventElapsedTime(&elapsed_time_ms, start, stop);
+
+
+
+
+
+  printf("Time to calculate results on GPU: %f ms.\n", elapsed_time_ms);
+
+
+  cudaEventRecord(start, 0);
+
+
+  cpu_matrixadd(a, b, d, N);
+
+  cudaEventRecord(stop, 0);
+  cudaEventSynchronize(stop);
+  cudaEventElapsedTime(&elapsed_time_ms, start, stop);
+
+  printf("Time to calculate results on CPU: %f ms.\n", elapsed_time_ms);
   }
